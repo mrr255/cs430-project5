@@ -91,7 +91,7 @@ static inline void readP6(FILE *in, Pixel *buffer, int *width,
   unsigned char *charBuffer = malloc(sizeof(unsigned char));
   int i = 0;
   int color;
-  int arryMax = *width * *height;
+  int arryMax = (*width) * (*height);
 
   while (fread(charBuffer, 1, 1, in) && i < arryMax) //add pixels to rgb
   {

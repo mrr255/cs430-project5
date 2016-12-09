@@ -30,7 +30,7 @@ const GLubyte Indices[] = {
   2, 3, 0
 };
 
-
+transvals *trans;
 
 Vertex vertexes[] = {
   {{1, -1}, {0.99999, 0.99999}},
@@ -67,6 +67,47 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+    //Translation
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+      trans[0].translate[1] += 0.1;
+
+    if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    	trans[0].translate[0] -= 0.1;
+
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+      trans[0].translate[1] -= 0.1;
+
+    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+      trans[0].translate[0] += 0.1;
+
+    // Scale
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+      trans[0].scale *= 1.1;
+
+    if (key == GLFW_KEY_F && action == GLFW_PRESS)
+    	trans[0].scale /= 1.1;
+
+    // Rotate Left
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+      trans[0].rotate += (90 * 3.141592) / 180;
+
+    if (key == GLFW_KEY_E && action == GLFW_PRESS)
+      trans[0].rotate -= (90 * 3.141592) / 180;
+
+    // Shear
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+    	trans[0].shear[1] += 0.1;
+
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+    	trans[0].shear[1] -= 0.1;
+
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    	trans[0].shear[0] -= 0.1;
+
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+      trans[0].shear[0] += 0.1;
+
 }
 
 void glCompileShaderOrDie(GLuint shader) {
@@ -101,7 +142,6 @@ int main(int argc, char *argv[])
     GLuint vertex_buffer, vertex_shader, fragment_shader, program, index_buffer;
     GLint mvp_location, vpos_location, vcol_location;
     Pixel *buffer;
-    transvals *trans;
     int        iw, ih, cMax, version;
 
     FILE* fr = fopen(argv[1], "r"); // File Read
@@ -199,8 +239,8 @@ int main(int argc, char *argv[])
     GLuint texID;
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, iw, ih, 0, GL_RGB,
 		 GL_UNSIGNED_BYTE, buffer);
@@ -222,7 +262,7 @@ int main(int argc, char *argv[])
     {
         float ratio;
         int width, height;
-        mat4x4 m, p, mvp;
+        mat4x4 translate, rotate, scale, shear, mvp;
 
         glfwGetFramebufferSize(window, &width, &height);
         ratio = width / (float) height;
@@ -230,12 +270,25 @@ int main(int argc, char *argv[])
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
 //DO STUFFS
+        // Set the Transformation matrices
+        mat4x4_identity(translate);
+        mat4x4_translate(translate, trans[0].translate[0], trans[0].translate[1], 0);
 
-        mat4x4_identity(mvp);
-        //mat4x4_identity(p);
-        //mat4x4_rotate_Z(m, m, (float) glfwGetTime());
-        //mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-        //mat4x4_mul(mvp, p, m);
+        mat4x4_identity(rotate);
+        mat4x4_rotate_Z(rotate, rotate, trans[0].rotate);
+
+        mat4x4_identity(scale);
+        scale[0][0] = scale[0][0] * trans[0].scale;
+        scale[1][1] = scale[1][1] * trans[0].scale;
+
+        mat4x4_identity(shear);
+        shear[1][0] = trans[0].shear[0];
+        shear[0][1] = trans[0].shear[1];
+
+        mat4x4_mul(mvp,translate, rotate);
+        mat4x4_mul(mvp,mvp, scale);
+        mat4x4_mul(mvp,mvp, shear);
+
 
 
         glUseProgram(program);
