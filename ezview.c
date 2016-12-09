@@ -5,15 +5,11 @@
 #include <GLFW/glfw3.h>
 
 #include "linmath.h"
+#include "ppmr.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-
-typedef struct Pixel
-  {
-  unsigned char r, g, b;
-  } Pixel;
 
 typedef struct {
   float Position[2];
@@ -25,7 +21,7 @@ typedef struct {
   float rotate;
   float translate[2]; // 0 -> x, 1 -> y
   float shear[2];     // 0 -> x, 1 -> y
-} transvals
+} transvals;
 
 // (-1, 1)  (1, 1)
 // (-1, -1) (1, -1)
@@ -37,10 +33,10 @@ const GLubyte Indices[] = {
 
 
 Vertex vertexes[] = {
-  {{1, -1}, {0.99999, 0}},
-  {{1, 1},  {0.99999, 0.99999}},
-  {{-1, 1}, {0, 0.99999}},
-  {{-1, -1}, {0, 0}}
+  {{1, -1}, {0.99999, 0.99999}},
+  {{1, 1},  {0.99999, 0}},
+  {{-1, 1}, {0, 0}},
+  {{-1, -1}, {0, 0.99999}}
 };
 
 static const char* vertex_shader_text =
@@ -92,16 +88,12 @@ void glCompileShaderOrDie(GLuint shader) {
   }
 }
 
-Pixel* parse(FILE* fr,int* w, int* h)
-{
-
-}
 int main(int argc, char *argv[])
 {
 
   if (argc != 2)
   {
-    fprintf(stderr, "ERROR: Usage ezview input.ppm\n", argc);
+    fprintf(stderr, "Error: Usage ezview input.ppm\n", argc);
     exit(1);
   }
 
@@ -109,7 +101,7 @@ int main(int argc, char *argv[])
     GLuint vertex_buffer, vertex_shader, fragment_shader, program, index_buffer;
     GLint mvp_location, vpos_location, vcol_location;
     Pixel *buffer;
-    transvals trans;
+    transvals *trans;
     int        iw, ih, cMax, version;
 
     FILE* fr = fopen(argv[1], "r"); // File Read
@@ -119,9 +111,13 @@ int main(int argc, char *argv[])
       fprintf(stderr, "%s\n", "Error: input file type not found.");
       return(1);
       }
-    Pixel* image = parseH(fr,&iw,&ih,&cMax,&version);
+    if(parseH(fr,&iw,&ih,&cMax,&version))
+    {
+      fprintf(stderr, "Error: Header parsing unsuccessful\n", argc);
+      exit(1);
+    }
 
-    buffer = (pixel *) malloc(sizeof(pixel) * width * height);
+    buffer = malloc(sizeof(Pixel) * iw * ih);
 
     if (version == 3)
     {
@@ -213,6 +209,15 @@ int main(int argc, char *argv[])
     glBindTexture(GL_TEXTURE_2D, texID);
     glUniform1i(tex_location, 0);
 
+
+    trans =(transvals *) malloc(sizeof(transvals));
+    trans[0].translate[0] = 0.0;
+    trans[0].translate[1] = 0.0;
+    trans[0].shear[0] = 0.0;
+    trans[0].shear[1] = 0.0;
+    trans[0].rotate = 0.0;
+    trans[0].scale = 1.0;
+
     while (!glfwWindowShouldClose(window))
     {
         float ratio;
@@ -224,12 +229,13 @@ int main(int argc, char *argv[])
 
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
+//DO STUFFS
 
-
-        mat4x4_identity(m);
+        mat4x4_identity(mvp);
+        //mat4x4_identity(p);
         //mat4x4_rotate_Z(m, m, (float) glfwGetTime());
-        mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-        mat4x4_mul(mvp, p, m);
+        //mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
+        //mat4x4_mul(mvp, p, m);
 
 
         glUseProgram(program);
